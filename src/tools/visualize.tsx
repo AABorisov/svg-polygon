@@ -8,6 +8,7 @@ interface VisualizeProps {
 }
 
 export const Visualize: FC<VisualizeProps> = ({ points, color, showDots }) => {
+
   return (
     <>
       <polygon

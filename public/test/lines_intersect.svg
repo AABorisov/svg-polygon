@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="700" height="700"
+     viewBox="0 0 700 700">
+    <g id="2lines">
+        <line x1="350" y1="350" x2="0" y2="700" stroke="blue"/>
+        <line x1="0" y1="700" x2="350" y2="350" stroke="blue"/>
+    </g>
+</svg>

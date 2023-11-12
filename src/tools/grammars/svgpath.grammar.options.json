@@ -1,0 +1,12 @@
+{
+  "input": "./src/tools/grammars/svgpath.grammar.pegjs",
+  "output": "./src/tools/grammars/svgpath.grammar.ts",
+  "plugins": ["./node_modules/ts-pegjs/dist/tspegjs.js"],
+  "tspegjs": {
+    "customHeader": "// import lib\nimport type { TSubpath, TClosepath } from '@/tools/grammars/svgpath.types';"
+  },
+  "returnTypes": {
+    "Subpath": "TSubpath",
+    "Closepath": "TClosepath"
+  }
+}
