@@ -1,15 +1,6 @@
 import { ArrPoint, TPoint } from "../point"
-import Line from "./Line"
+import Segment from "./Segment"
 import Point from "./Point"
-
-/**
- * gl: global functions
- * 
- * functions:
- *   distance
- *   
- */
-
 
 /**
  * Polygon: 
@@ -25,18 +16,18 @@ import Point from "./Point"
  */
 class Polygon {
   _points: Point[]
-  _lines: Line[]
+  _segments: Segment[]
 
   constructor(points: Point[]) {
     this._points = points
-    this._lines = points.reduce((acc, p1, index) => {
+    this._segments = points.reduce((acc, p1, index) => {
       let p2: Point
-      if (index !== points.length) {
+      if (index !== points.length - 1) {
         p2 = points[index + 1]
       } else {
         p2 = points[0]
       }
-      acc.push(new Line(p1, p2))
+      acc.push(new Segment(p1, p2))
       return acc
     }, [])
   }
@@ -49,12 +40,16 @@ class Polygon {
     return this._points
   }
 
-  get lines() {
-    return this._lines
+  get segments() {
+    return this._segments
   }
 
   get arrPoints() {
     return this.points.map((p) => p.arrPoint)
+  }
+
+  union(pol: Polygon) {
+    
   }
 }
 

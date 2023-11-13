@@ -54,8 +54,10 @@ function DrawSvg({ src }: TDrawSvgProps) {
 }
 
 export default function Home() {
-  const srcs = ["/1.svg", 
-  "/2.svg", "/3.svg"
+  const srcs = [
+    "/test/polygon_intersect.svg"
+    // "/1.svg", 
+  // "/2.svg", "/3.svg"
 ]
   return (
     <>

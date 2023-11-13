@@ -133,6 +133,7 @@ const getNumber = (val: string, defaultVal: number = 0) => {
 
 const parseDots = (source: TParseElementResult): TParseDots => {
   let dots = [];
+  const children = source.children.map(parseDots)
   switch (source.tagName) {
     case "svg":
       break
@@ -180,7 +181,7 @@ const parseDots = (source: TParseElementResult): TParseDots => {
   return {
     tagName: source.tagName,
     dots,
-    children: source.children.map(parseDots)
+    children
   }
 }
 

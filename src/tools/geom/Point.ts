@@ -1,5 +1,4 @@
 import { TPoint, ArrPoint } from "../point"
-import { getDistance } from "./geom"
 
 /**
  * Point: Point or ArrPoint
@@ -52,8 +51,12 @@ class Point {
     return [this._x, this._y]
   }
 
+  getDist2(p: Point): number {
+    return (this.x - p.x) ** 2 + (this.y - p.y) ** 2
+  }
+
   getDistance(p: Point): number {
-    return getDistance(this.arrPoint, p.arrPoint)
+    return Math.sqrt(this.getDist2(p))
   }
 }
 
