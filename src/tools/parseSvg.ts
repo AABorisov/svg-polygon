@@ -1,6 +1,6 @@
-import { clearSurfaces } from "./curves/approxCurves"
+import Polygon from "./geom/Polygon"
+import { getNumber, parsePath, parsePoints } from "./parsePath"
 import { ArrPoint } from "./point"
-import { closeSurfaces, convertToAbsoluteSubpaths, parseSvgPath } from "./svgPathTransformer"
 
 
 export type TDrawSvgProps = {
@@ -13,12 +13,6 @@ export type TParseElementResult = {
   classList: any
   children: TParseElementResult[]
 }
-export type TParseDots = {
-  edge?: [ArrPoint, ArrPoint, ArrPoint, ArrPoint],
-  dots: ArrPoint[],
-  tagName: string
-  children: TParseDots[]
-}
 
 export type TSurface = ArrPoint[]
 
@@ -27,6 +21,8 @@ export type TSurface = ArrPoint[]
 export const parseSvg = (sourceElement: Element) => {
   const parsedElement = parseElement(sourceElement)
   const parsedDots = parseDots(parsedElement)
+  // console.log(parsedDots)
+  // return parsedDots.children.map(c => c.polygon).filter(c => c).map(p => p.arrPoints)
   const surfaces = convertDotsToSurfaces(parsedDots)
   const result = clearFromEmpty(surfaces)
   const unionResult = union(parsedDots)
@@ -46,8 +42,8 @@ const convertDotsToSurfaces = (parsedDots: TParseDots): ArrPoint[][] => {
   }, [])
   switch (parsedDots.tagName) {
     case 'path':
-      surfaces.push(...parsedDots.dots as never as ArrPoint[][])
-      break
+      // surfaces.push(...parsedDots.dots as never as ArrPoint[][])
+      // break
     default:
       if (parseDots.length)
         surfaces.push(parsedDots.dots)
@@ -78,71 +74,55 @@ const parseElement = (source: Element): TParseElementResult => {
   }
 }
 
-type TPathCommand = {
-  type: 'm' | 'l'
-  coords: 'abs' | 'rel'
+export type TParseDots = {
+  edge?: [ArrPoint, ArrPoint, ArrPoint, ArrPoint]
+  dots: ArrPoint[]
+  polygon: Polygon
+  tagName: string
+  children: TParseDots[]
 }
-type TPath = {
-  closed: boolean
-}
-
-const parsePath = (source: string): ArrPoint[][] => {
-  const relativeSubPaths = parseSvgPath(source);
-  const absSubPaths = convertToAbsoluteSubpaths(relativeSubPaths);
-  const closedSubpaths = closeSurfaces(absSubPaths)
-  const clearedSurfaces = clearSurfaces(closedSubpaths)
-  // const surface:ArrPoint[] = intersectSurfaces(cleared)
-
-  return clearedSurfaces
-}
-const parsePoints = (source: string): ArrPoint[] => {
-  type TReduceResult = {
-    points: ArrPoint[],
-    error: boolean
-  }
-  const result = source.split(/[, ]/).map(Number).reduce((acc, n): TReduceResult => {
-    if (acc.error) return acc
-    if (Number.isNaN(n)) {
-      acc.error = true
-    } else {
-      if (acc.points.length === 0 || acc.points[acc.points.length - 1].length == 2) {
-        acc.points.push([n])
-      } else {
-        acc.points[acc.points.length - 1].push(n)
-      }
-    }
-    return acc
-  }, {
-    points: [],
-    error: false
-  })
-  if (result.points[result.points.length - 1].length !== 2) {
-    result.error = true
-  }
-
-  if (result.error) {
-    console.error("Point parse error. See: https://svgwg.org/svg2-draft/shapes.html#DataTypePoints")
-  }
-
-  return result.points;
-}
-
-const getNumber = (val: string, defaultVal: number = 0) => {
-  return Number(val) || defaultVal
-}
-
 const parseDots = (source: TParseElementResult): TParseDots => {
   let dots = [];
-  const children = source.children.map(parseDots)
+  let polygon: Polygon = null
+  let children = source.children.map(parseDots)
   switch (source.tagName) {
-    case "svg":
+    case "svg": {
+      const childrenPolygons = children.map(c => c.polygon).filter(c => c)
+      console.log('svg', childrenPolygons)
+      polygon = childrenPolygons.reduce((acc: Polygon | null, pol) => {
+        if (acc === null) {
+          acc = pol
+        } else {
+          acc.union(pol)
+        }
+
+        return acc
+      }, null)
+
+      dots = polygon.arrPoints
+    }
       break
     case "defs":
     case "style":
     case "clipPath":
-      source.children = []
+      children = []
       break
     case "g":
+      const childrenPolygons = children.map(c => c.polygon)
+      polygon = childrenPolygons.reduce((acc: Polygon | null, pol) => {
+        if (acc === null) {
+          acc = pol
+        } else {
+          acc.union(pol)
+        }
+
+        return acc
+      }, null)
+
+      dots = polygon.arrPoints
+
+      // children = []
+      
       break
     case "rect":
       const { x: xStr, y: yStr, width: widthStr, height: heightStr } = source.attributes
@@ -155,12 +135,28 @@ const parseDots = (source: TParseElementResult): TParseDots => {
         [x + width, y + height],
         [x, y + height]
       ]
+
+      polygon = Polygon.from(dots)
+      dots = polygon.arrPoints
+
       break
     case "path":
       const d = source.attributes['d']
       if (!d) break
       const parsed = parsePath(d);
       dots = parsed
+
+      polygon = parsed.reduce((acc: Polygon, subpath) => {
+        if (acc === null) {
+          acc = Polygon.from(subpath)
+        } else {
+          acc.union(Polygon.from(subpath))
+        }
+        return acc
+      }, null)
+
+      dots = polygon.arrPoints
+
       break
     case "line":
       const { x1, y1, x2, y2 } = source.attributes
@@ -168,20 +164,29 @@ const parseDots = (source: TParseElementResult): TParseDots => {
         [getNumber(x1), getNumber(y1)],
         [getNumber(x2), getNumber(y2)]
       ]
+
+      polygon = Polygon.from(dots)
+      dots = polygon.arrPoints
       break
     case "polyline":
     case "polygon":
       const points = source.attributes['points']
       if (!points) break
       dots = parsePoints(points)
+
+      polygon = Polygon.from(dots)
+      dots = polygon.arrPoints
+      
       break
     default:
+      console.log('new tag', source.tagName)
     //
   }
   return {
     tagName: source.tagName,
     dots,
-    children
+    children,
+    polygon
   }
 }
 

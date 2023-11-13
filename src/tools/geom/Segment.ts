@@ -123,7 +123,7 @@ class Segment {
   // if det > 0 clock wise
   // if det == 0 collinear
   det(p: Point): number {
-    return (this.dy) * (p.x - this.p2.x) - (this.dx) * (p.y - this.p2.y)
+    return (this.dy) * (p.x - this.p1.x) - (this.dx) * (p.y - this.p1.y)
   }
 
   onSegment(p: Point): boolean {
@@ -137,7 +137,7 @@ class Segment {
     const d3 = seg.det(this.p1)
     const d4 = seg.det(this.p2)
 
-    if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0) && (d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)) {
+    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) {
       return true
     } else if (d1 === 0 && this.onSegment(seg.p1) || d2 === 0 && this.onSegment(seg.p2)
     || d3 === 0 && seg.onSegment(this.p1) || d4 === 0 && seg.onSegment(this.p2)
@@ -212,6 +212,7 @@ class Segment {
         const isP3 = seg.onSegment(this.p1)
         const isP4 = seg.onSegment(this.p2)
         const points = [isP1 && seg.p1, isP2 && seg.p2, isP3 && this.p1, isP4 && this.p2].filter(p => p)
+        // todo: Sorted by it should be in right clockwise direction: from begin to end
         const sortedPoints = points.sort((pa, pb) => {
           if (pa.x === pb.x) {
             return pa.y - pb.y
@@ -226,7 +227,7 @@ class Segment {
         }
       } else {
         const point = this._lineIntersect(seg)
-        return Point.from(point)
+        return point && Point.from(point)
       }
     }
     return false
