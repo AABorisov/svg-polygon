@@ -146,8 +146,7 @@ const parseDots = (source: TParseElementResult): TParseDots => {
         [x, y],
         [x + width, y],
         [x + width, y + height],
-        [x, y + height],
-        [x, y ]
+        [x, y + height]
       ]
 
       dots = unionParsed(parsed)
