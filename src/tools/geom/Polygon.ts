@@ -18,8 +18,9 @@ import Point from "./Point"
  */
 class Polygon {
   _points: Point[]
-  _edge: [minX: number, minY: number, maxX: number, maxY: number] = null
   _segments: Segment[] = null
+  _edge: [minX: number, minY: number, maxX: number, maxY: number] = null
+  _edgePoints: [tl: Point, tr: Point, br: Point, bl: Point] = null
   _edgeSegments: Segment[] = null
 
   constructor(points: Point[]) {
@@ -107,13 +108,21 @@ class Polygon {
 
   _getEdgeSegments() {
     const [minX, minY, maxX, maxY] = this.edge
-    const edgePoints: [ArrPoint, ArrPoint, ArrPoint, ArrPoint] = [[minX, maxY], [maxX, maxY], [maxX, minY], [minX, minY]]
+    const edgePoints: [ArrPoint, ArrPoint, ArrPoint, ArrPoint] = [[minX, minY], [maxX, minY], [maxX, maxY], [minX, maxY]]
     const edgeSegments = edgePoints.reduce((acc: Segment[], p1, index) => {
       const p2 = edgePoints[(index + 1) % edgePoints.length]
       acc.push(Segment.from(p1, p2))
       return acc
     }, [])
+    this._edgePoints = edgePoints.map(Point.from) as typeof this['_edgePoints']
     this._edgeSegments = edgeSegments
+  }
+
+  get edgePoints() {
+    if (this._edgePoints === null) {
+      this._getEdgeSegments()
+    }
+    return this._edgePoints
   }
 
   get edgeSegments() {
@@ -156,7 +165,7 @@ class Polygon {
     return Boolean(this._checkIntersectSegments(edgeSegments, edgeSegments2))
   }
 
-  _isIntersect(pol: Polygon): boolean {
+  isIntersect(pol: Polygon): boolean {
     // if exist one intersect segment or over
     // check pol over
     if (this._checkOver(pol)) return true
@@ -230,33 +239,11 @@ class Polygon {
     return points
   }
 
-  _union(segs1: Segment[], segs2: Segment[], startI: number, startJ: number): Point[] {
-    // checked intersections before
-    const points = segs1.reduce((acc, seg, index) => {
-      acc.push(seg.p1)
-      const intersected = this._checkIntersectSegments([seg], segs2)
-      if (intersected) {
-        const [_i, j] = intersected
-
-        const intersectedSegment = seg.intersectedSegment(segs2[j])
-        if (intersectedSegment) {
-          if (intersectedSegment instanceof Segment) {
-
-            acc.push()
-          }
-        }
-      }
-      return acc
-    }, [])
-
-    return points
-  }
-
   union(pol: Polygon): Polygon {
     // case not intesect polygon: we can add one neares point or projection to second polygon to intersect in one point
     // or return two polygons
     console.log('union check is intersect')
-    if (!this._isIntersect(pol)) return this
+    if (!this.isIntersect(pol)) return this
     console.log('union check has intersected')
 
 

@@ -19,7 +19,7 @@ export const Visualize: FC<VisualizeProps> = ({ points, color, showDots }) => {
       />
       {showDots &&
         points.map(([x, y], i) => (
-          <g>
+          <g key={i}>
           <circle key={i} cx={x} cy={y} r="2px" stroke={color} fill="none"/>
           <text x={x} y={y}>{i}</text>
           </g>

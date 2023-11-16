@@ -1,6 +1,8 @@
-import Polygon from "./geom/Polygon"
+// import Polygon from "./geom/Polygon"
 import { getNumber, parsePath, parsePoints } from "./parsePath"
 import { ArrPoint } from "./point"
+const greinerHormann = require('greiner-hormann');
+const PolyBool = require('polybooljs');
 
 
 export type TDrawSvgProps = {
@@ -41,12 +43,9 @@ const convertDotsToSurfaces = (parsedDots: TParseDots): ArrPoint[][] => {
     return acc
   }, [])
   switch (parsedDots.tagName) {
-    case 'path':
-      // surfaces.push(...parsedDots.dots as never as ArrPoint[][])
-      // break
     default:
       if (parseDots.length)
-        surfaces.push(parsedDots.dots)
+        surfaces.push(...parsedDots.dots)
   }
   surfaces.push(...childSurfaces)
 
@@ -74,119 +73,117 @@ const parseElement = (source: Element): TParseElementResult => {
   }
 }
 
+const unionChildrenDots = (childrenDots: ArrPoint[][][], tagName: string): ArrPoint[][] => {
+  const dots = childrenDots.reduce((acc, dots) => {
+    acc.push(...dots)
+    return acc
+  }, [])
+  console.log(tagName, dots)
+  return unionParsed(dots)
+}
+
+const unionParsed = (parsed: ArrPoint[] | ArrPoint[][]): ArrPoint[][] => {
+  if (parsed && parsed[0] && typeof parsed[0][0] === 'number') {
+    return [parsed as ArrPoint[]]
+  }
+  const dots = (parsed as ArrPoint[][]).reduce(unionDots, null)
+
+  return dots
+}
+const unionDots = (regions: ArrPoint[][], dots: ArrPoint[], index: number): ArrPoint[][] => {
+  if (index === 0) {
+    return [dots]
+  }
+  const result = runUnion(dots, regions)
+  return result 
+}
+
+const runUnion = (left: ArrPoint[], right: ArrPoint[][]): ArrPoint[][] => {
+  const union = PolyBool.union({
+    regions: [left]
+  }, {
+    regions: right
+  })
+  return union.regions as ArrPoint[][]
+}
+
 export type TParseDots = {
   edge?: [ArrPoint, ArrPoint, ArrPoint, ArrPoint]
-  dots: ArrPoint[]
-  polygon: Polygon
+  dots: ArrPoint[][]
   tagName: string
   children: TParseDots[]
 }
 const parseDots = (source: TParseElementResult): TParseDots => {
-  let dots = [];
-  let polygon: Polygon = null
+  let dots: ArrPoint[][] = [];
   let children = source.children.map(parseDots)
   switch (source.tagName) {
     case "svg": {
-      const childrenPolygons = children.map(c => c.polygon).filter(c => c)
-      console.log('svg', childrenPolygons)
-      polygon = childrenPolygons.reduce((acc: Polygon | null, pol) => {
-        if (acc === null) {
-          acc = pol
-        } else {
-          acc.union(pol)
-        }
-
-        return acc
-      }, null)
-
-      dots = polygon.arrPoints
-    }
+      const childrenPolygons = children.map(c => c.dots).filter(dots => dots.length)
+      console.log('svg', childrenPolygons.length, children.map(c => c.dots).length)
+      dots = unionChildrenDots(childrenPolygons, source.tagName)
+      children = []
       break
+    }
     case "defs":
     case "style":
     case "clipPath":
       children = []
       break
-    case "g":
-      const childrenPolygons = children.map(c => c.polygon)
-      polygon = childrenPolygons.reduce((acc: Polygon | null, pol) => {
-        if (acc === null) {
-          acc = pol
-        } else {
-          acc.union(pol)
-        }
+    case "g": {
+      const childrenPolygons = children.map(c => c.dots)
+      dots = unionChildrenDots(childrenPolygons, source.tagName)
 
-        return acc
-      }, null)
-
-      dots = polygon.arrPoints
-
-      // children = []
+      children = []
       
       break
-    case "rect":
+    }
+    case "rect": {
       const { x: xStr, y: yStr, width: widthStr, height: heightStr } = source.attributes
       const [x, y, width, height] = [xStr, yStr, widthStr, heightStr].map(getNumber)
       if (!width || !height) break
 
-      dots = [
+      const parsed: ArrPoint[] = [
         [x, y],
         [x + width, y],
         [x + width, y + height],
-        [x, y + height]
+        [x, y + height],
+        [x, y ]
       ]
 
-      polygon = Polygon.from(dots)
-      dots = polygon.arrPoints
-
+      dots = unionParsed(parsed)
       break
-    case "path":
+    }
+    case "path": {
       const d = source.attributes['d']
       if (!d) break
       const parsed = parsePath(d);
-      dots = parsed
-
-      polygon = parsed.reduce((acc: Polygon, subpath) => {
-        if (acc === null) {
-          acc = Polygon.from(subpath)
-        } else {
-          acc.union(Polygon.from(subpath))
-        }
-        return acc
-      }, null)
-
-      dots = polygon.arrPoints
-
+      dots = unionParsed(parsed)
       break
-    case "line":
+    }
+    case "line": {
       const { x1, y1, x2, y2 } = source.attributes
-      dots = [
+      const parsed: ArrPoint[] = [
         [getNumber(x1), getNumber(y1)],
         [getNumber(x2), getNumber(y2)]
       ]
-
-      polygon = Polygon.from(dots)
-      dots = polygon.arrPoints
+      dots = unionParsed(parsed)
       break
+    }
     case "polyline":
-    case "polygon":
+    case "polygon": {
       const points = source.attributes['points']
       if (!points) break
-      dots = parsePoints(points)
-
-      polygon = Polygon.from(dots)
-      dots = polygon.arrPoints
-      
+      const parsed: ArrPoint[] = parsePoints(points)
+      dots = unionParsed(parsed)
       break
+    }
     default:
       console.log('new tag', source.tagName)
-    //
   }
   return {
     tagName: source.tagName,
     dots,
-    children,
-    polygon
+    children
   }
 }
 

@@ -15,7 +15,9 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "greiner-hormann": "^1.4.2",
     "next": "14.0.0",
+    "polybooljs": "^1.2.0",
     "prettier": "^3.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

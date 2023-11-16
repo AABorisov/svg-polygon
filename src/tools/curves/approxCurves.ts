@@ -21,7 +21,7 @@ const ellipseArcCurve = (params: SvgArcToCenterParams, countPoints: number): Coo
     return result
   }
   const { startAngle, deltaAngle } = centerObject;
-  const pointsCount = countPoints
+  const pointsCount = countPoints * 5
   for (let i = 1; i < pointsCount; i++) {
     angles.push(startAngle + i * deltaAngle / pointsCount)
   }

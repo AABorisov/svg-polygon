@@ -24,7 +24,7 @@ export function svgArcToCenterParam(params: SvgArcToCenterParams): CenterParamOb
   let cx: number, cy: number, startAngle: number, deltaAngle: number, endAngle: number;
   const PIx2: number = Math.PI * 2.0;
   const phi = degree * Math.PI / 180;
-  const clockwise = (fS === 1)
+  const clockwise = (fS == 1)
 
   if (rx < 0) {
     rx = -rx;
@@ -66,7 +66,7 @@ export function svgArcToCenterParam(params: SvgArcToCenterParams): CenterParamOb
     throw Error('start point can not be same as end point');
   }
   let coe = Math.sqrt(Math.abs((rxry * rxry - sum_of_sq) / sum_of_sq));
-  if (fA === fS) { coe = -coe; }
+  if (fA == fS) { coe = -coe; }
 
   // F6.5.2
   const cx_ = coe * rxy1_ / ry;
@@ -81,14 +81,16 @@ export function svgArcToCenterParam(params: SvgArcToCenterParams): CenterParamOb
   const ycr1 = (y1_ - cy_) / ry;
   const ycr2 = (y1_ + cy_) / ry;
 
+
   // F6.5.5
   startAngle = radian(1.0, 0.0, xcr1, ycr1);
 
   // F6.5.6
   deltaAngle = radian(xcr1, ycr1, -xcr2, -ycr2);
+  // if (!clockwise) { deltaAngle = PIx2 - deltaAngle; }
   while (deltaAngle > PIx2) { deltaAngle -= PIx2; }
   while (deltaAngle < 0.0) { deltaAngle += PIx2; }
-  if (fS === 0) { deltaAngle -= PIx2; }
+  if (fS == 0) { deltaAngle -= PIx2; }
   endAngle = startAngle + deltaAngle;
   while (endAngle > PIx2) { endAngle -= PIx2; }
   while (endAngle < 0.0) { endAngle += PIx2; }
